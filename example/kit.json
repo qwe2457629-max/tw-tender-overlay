@@ -1,0 +1,8 @@
+{
+  "template_case_no": "EX-2026-001",
+  "template_name": "範例資訊系統維護案（虛構）",
+  "forms": {
+    "sample_form.pdf": {"keys": ["投標單"], "exclude": ["須知", "招標單"]}
+  },
+  "checklist_pdf": "資格審查單"
+}

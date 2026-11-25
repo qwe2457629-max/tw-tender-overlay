@@ -1,0 +1,14 @@
+# 編譯產物
+*.aux
+*.log
+*.out
+*.synctex.gz
+example/forms.pdf
+example/preview.pdf
+example/sample-forms/*.pdf
+demo_out/
+__pycache__/
+
+# 真實標案資料不要放進 repo
+**/招標文件/
+**/_資格文件/

@@ -1,0 +1,47 @@
+% ============================================================================
+%  範例：投標表單套印（虛構表單 src/sample_form.pdf）
+%  資料改 vendor.tex；本檔只放「哪個值印在哪裡」的座標。
+%  編譯：tectonic -X compile forms.tex   （或 xelatex forms.tex）
+%  座標：單位 bp，原點在頁面左下角，y 為文字基線。用 tools/coords.py、tools/lines.py 量。
+% ============================================================================
+\documentclass{article}
+\newif\ifdraft
+\newif\ifpreview
+\input{vendor.tex}
+\input{../core/overlay-core.tex}
+
+% ---------------------------------------------------------------- 第 1 頁：投標單
+\newcommand{\OverlayBid}{%
+  \draftnote{820}%
+  % 價格表：單價靠右對齊於 x=440，複價靠右對齊於 x=530
+  \putr{440,673}{\val\PriceUnitA{單價}}\putr{530,673}{\val\PriceAmtA{複價}}%
+  \putr{440,648}{\val\PriceUnitB{單價}}\putr{530,648}{\val\PriceAmtB{複價}}%
+  \putr{530,623}{\val\PriceTotal{總計}}%
+  % 中文大寫：7 格（佰萬…元），格子中心 x = 180 + 40k
+  \ifdefempty{\PriceTotalCn}{\ifdraft\putl[10]{450,560}{\textcolor{red}{〔大寫〕}}\fi}{%
+    \digit{\PriceTotalCn}{1}{180,560}{14}\digit{\PriceTotalCn}{2}{220,560}{14}%
+    \digit{\PriceTotalCn}{3}{260,560}{14}\digit{\PriceTotalCn}{4}{300,560}{14}%
+    \digit{\PriceTotalCn}{5}{340,560}{14}\digit{\PriceTotalCn}{6}{380,560}{14}%
+    \digit{\PriceTotalCn}{7}{420,560}{14}}%
+  % 廠商資料
+  \putl{155,519}{\fitw{375bp}{\val\VendorName{廠商全銜}}}%
+  \putl{155,489}{\fitw{375bp}{\val\VendorAddr{地址}}}%
+  \putl{155,459}{\fitw{170bp}{\val\VendorRep{負責人}}}%
+  \putl{155,429}{\fitw{170bp}{\val\VendorTaxID{統一編號}}}%
+  \putl{155,399}{\fitw{170bp}{\val\VendorTel{電話}}}%
+  \ifsigndate{\putc{270,340}{\val\SignY{年}}\putc{330,340}{\val\SignM{月}}\putc{390,340}{\val\SignD{日}}}%
+}
+
+% ---------------------------------------------------------------- 第 2 頁：聲明書
+\def\DeclYesX{456}\def\DeclNoX{508.5}
+\newcommand{\OverlayDecl}{%
+  \draftnote{820}%
+  \decl{\DeclI}{695}\decl{\DeclII}{655}\decl{\DeclIII}{615}\decl{\DeclIV}{575}%
+  \putl{155,499}{\fitw{375bp}{\val\VendorName{廠商全銜}}}%
+  \putl{155,469}{\fitw{170bp}{\val\VendorRep{負責人}}}%
+}
+
+\begin{document}
+\includepdf[pages=1, fitpaper, picturecommand*={\OverlayBid}]{src/sample_form.pdf}
+\includepdf[pages=2, fitpaper, picturecommand*={\OverlayDecl}]{src/sample_form.pdf}
+\end{document}

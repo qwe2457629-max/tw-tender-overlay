@@ -1,0 +1,38 @@
+% 產生虛構的「招標單」與「資格審查單」，用來示範 tools/new_tender.py。
+% 編譯：tectonic -X compile make_sheet.tex → make_sheet.pdf（第 1 頁招標單、第 2 頁資格審查單）
+\documentclass[12pt]{article}
+\usepackage[a4paper,margin=25mm]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\newcommand{\pickfont}[1]{\ifdefined\SampleCJK\else\IfFontExistsTF{#1}{\def\SampleCJK{#1}}{}\fi}
+\pickfont{DFKai-SB}\pickfont{BiauKai}\pickfont{TW-Kai}\pickfont{Noto Serif CJK TC}\pickfont{Noto Sans CJK TC}
+\setCJKmainfont{\SampleCJK}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\begin{document}
+\begin{center}\Large 招標單（虛構範例）\end{center}
+\bigskip
+1.案號：EX-2026-002\par
+2.標案名稱：範例網站建置案（虛構）\par
+3.招標機關：範例市政府資訊處（虛構）\par
+4.招標方式：公開招標\par
+5.決標原則：最低標\par
+6.預算金額：新臺幣1,500,000元\par
+7.截止投標期限：2026年12月15日17時00分\par
+8.開標時間：2026年12月16日10時00分\par
+9.押標金：無\par
+10.履約保證金：無\par
+11.投標文件收件處所：範例市範例路1號（虛構）\par
+12.開標地點：範例市範例路1號開標室（虛構）\par
+13.投標文件使用文字：中文正體字\par
+14.允許共同投標：否\par
+\bigskip
+本文件為虛構範例，與任何機關或標案無關。
+\clearpage
+\begin{center}\Large 資格審查單（虛構範例）\end{center}
+\bigskip
+一、廠商登記或設立證明。\par
+二、納稅證明。\par
+三、投標廠商聲明書。\par
+四、投標單（價格）。\par
+\end{document}

@@ -1,0 +1,117 @@
+% ============================================================================
+%  overlay-core.tex —— 投標表單套印的共用巨集
+%
+%  概念：用 pdfpages 載入機關提供的原始表單 PDF，只在欄位位置「疊印」廠商資料，
+%        原始表單完全不更動。座標單位 bp（PDF 點），原點在頁面左下角，y 是文字基線。
+%
+%  使用方式：在你的 forms.tex 裡
+%      \input{vendor.tex}            % 先載入資料
+%      \input{../core/overlay-core}  % 再載入本檔
+%  然後用 \includepdf[..., picturecommand*={\你的Overlay}]{src/表單.pdf}
+%
+%  值的三種狀態（填在 vendor.tex）：
+%      {}        空白      → 草稿印紅色〔提示〕；正式版不印
+%      {否?}     結尾有 ?  → 建議值、尚未確認：草稿印紅字；預覽版印黑字；正式版不印
+%      {否}      其他      → 已確認：一律印黑字
+%  模式：\drafttrue（草稿）／\draftfalse（正式）；preview.tex 會設 \PreviewMode（預覽版）。
+% ============================================================================
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\usepackage{xstring}
+\expandarg
+\usepackage{pdfpages}
+
+% ---------------------------------------------------------------- 字型
+% 依序找得到哪個就用哪個；要指定可在 vendor.tex 裡先 \def\TenderCJKFont{字型名稱}
+\providecommand{\TenderCJKFont}{}
+\providecommand{\TenderLatinFont}{}
+\newcommand{\tryCJK}[1]{\ifdefempty{\TenderCJKFont}{\IfFontExistsTF{#1}{\def\TenderCJKFont{#1}}{}}{}}
+\tryCJK{DFKai-SB}               % Windows 標楷體
+\tryCJK{BiauKai}                % macOS 標楷體
+\tryCJK{TW-Kai}                 % 全字庫正楷體
+\tryCJK{Noto Serif CJK TC}
+\tryCJK{Noto Sans CJK TC}
+\ifdefempty{\TenderCJKFont}{\PackageError{overlay-core}{找不到中文字型，請在 vendor.tex 設定 \string\TenderCJKFont}{}}{}
+\setCJKmainfont{\TenderCJKFont}
+\ifdefempty{\TenderLatinFont}{%
+  \IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}{\setmainfont{TeX Gyre Termes}}}%
+  {\setmainfont{\TenderLatinFont}}
+
+% \ifdraft、\ifpreview 由 forms.tex 在載入 vendor.tex 之前用 \newif 宣告
+\ifdefined\PreviewMode\draftfalse\previewtrue\fi
+\setlength{\unitlength}{1bp}
+
+% ---------------------------------------------------------------- 放字
+% \putl / \putc / \putr [字級]{x,y}{內容}：靠左／置中／靠右，y 為基線
+\newcommand{\putl}[3][12]{\put(#2){\fontsize{#1}{#1}\selectfont #3}}
+\newcommand{\putc}[3][12]{\put(#2){\makebox[0pt]{\fontsize{#1}{#1}\selectfont #3}}}
+\newcommand{\putr}[3][12]{\put(#2){\makebox[0pt][r]{\fontsize{#1}{#1}\selectfont #3}}}
+
+% ---------------------------------------------------------------- 確認狀態
+% \ifunconf{值}{是}{否}：值是否以 ? 或 ？ 結尾
+\newcommand{\ifunconf}[3]{\IfEndWith{#1}{?}{#2}{\IfEndWith{#1}{？}{#2}{#3}}}
+% \unc{文字}：尚未確認的值——草稿紅字、預覽版黑字、正式版不印
+\newcommand{\unc}[1]{\ifdraft\textcolor{red}{#1}\fi\ifpreview#1\fi}
+% \val{\巨集}{提示}：必填欄位（空白時草稿印提示）
+\newcommand{\val}[2]{\ifdefempty{#1}{\ifdraft\textcolor{red}{〔#2〕}\fi}%
+  {\ifunconf{#1}{\unc{\StrGobbleRight{#1}{1}}}{#1}}}
+% \opt{\巨集}：選填欄位（空白時不印）
+\newcommand{\opt}[1]{\ifdefempty{#1}{}{\ifunconf{#1}{\unc{\StrGobbleRight{#1}{1}}}{#1}}}
+% \draftnote{y}：頁首狀態說明（草稿紅字／預覽版灰字）
+\newcommand{\draftnote}[1]{%
+  \ifdraft\putl[8]{28,#1}{\textcolor{red}{草稿｜紅字＝尚未填寫或尚未確認。在 vendor.tex 補資料；值後面的「?」刪掉即視為確認。}}\fi
+  \ifpreview\putl[8]{28,#1}{\textcolor{gray}{預覽版｜帶「?」的建議值也以黑字顯示，僅供檢查版面，勿用於投標。}}\fi}
+
+% ---------------------------------------------------------------- 版面輔助
+% \fitw{最大寬度}{內容}：超過寬度就等比縮小（長公司名、地址）
+\newsavebox{\fitbox}
+\newcommand{\fitw}[2]{\sbox{\fitbox}{#2}%
+  \ifdim\wd\fitbox>#1\relax\resizebox{#1}{!}{\usebox{\fitbox}}\else\usebox{\fitbox}\fi}
+% \putwrap[字級]{x,y}{寬度}{最大高度}{內容}：以 x 置中；放不下自動換行，再放不下等比縮小
+\newsavebox{\wrapA}\newsavebox{\wrapB}
+\newcommand{\putwrap}[5][14]{%
+  \sbox{\wrapA}{\fontsize{#1}{#1}\selectfont #5}%
+  \ifdim\wd\wrapA>#3\relax
+    \sbox{\wrapA}{\parbox{#3}{\centering\fontsize{#1}{\dimexpr#1pt*23/20\relax}\selectfont #5}}%
+    \sbox{\wrapB}{\ifdim\dimexpr\ht\wrapA+\dp\wrapA\relax>#4\relax\resizebox*{!}{#4}{\usebox{\wrapA}}\else\usebox{\wrapA}\fi}%
+    \put(#2){\makebox[0pt]{\raisebox{\dimexpr#1pt*35/100-\ht\wrapB/2+\dp\wrapB/2\relax}{\usebox{\wrapB}}}}%
+  \else
+    \put(#2){\makebox[0pt]{\usebox{\wrapA}}}%
+  \fi}
+
+% ---------------------------------------------------------------- 勾選
+\newcommand{\vmark}[2][13]{\put(#2){\makebox[0pt]{\fontsize{#1}{#1}\selectfont\bfseries V}}}
+\newcommand{\rvmark}[2][13]{\put(#2){\makebox[0pt]{\fontsize{#1}{#1}\selectfont\bfseries\textcolor{red}{V}}}}
+\newcommand{\uvmark}[2][13]{\ifdraft\rvmark[#1]{#2}\fi\ifpreview\vmark[#1]{#2}\fi}
+% \chk{\開關}{x,y}：1 = 勾；1? = 尚未確認的勾；其他不勾
+\newcommand{\chk}[2]{\ifdefstring{#1}{1}{\vmark[11]{#2}}{%
+  \ifdefstring{#1}{1?}{\uvmark[11]{#2}}{\ifdefstring{#1}{1？}{\uvmark[11]{#2}}{}}}}
+
+% \decl[V 字級]{\巨集}{y}：是／否兩欄的勾選（聲明書這類表格）。
+%   欄位中心 x 由 \DeclYesX、\DeclNoX 設定（每份表單量一次）。
+\providecommand{\DeclYesX}{474}
+\providecommand{\DeclNoX}{527.5}
+\newcommand{\decl}[3][13]{%
+  \ifdefstring{#2}{是}{\vmark[#1]{\DeclYesX,#3}}{%
+  \ifdefstring{#2}{否}{\vmark[#1]{\DeclNoX,#3}}{%
+  \ifdefstring{#2}{是?}{\uvmark[#1]{\DeclYesX,#3}}{%
+  \ifdefstring{#2}{否?}{\uvmark[#1]{\DeclNoX,#3}}{%
+  \ifdefstring{#2}{是？}{\uvmark[#1]{\DeclYesX,#3}}{%
+  \ifdefstring{#2}{否？}{\uvmark[#1]{\DeclNoX,#3}}{%
+  \ifdraft\put(\DeclYesX,#3){\makebox[\dimexpr\DeclNoX bp-\DeclYesX bp\relax]{%
+    \fontsize{9}{9}\selectfont\textcolor{red}{〔待定〕}}}\fi}}}}}}}
+
+% \digit{\巨集}{第幾個字}{x,y}{字級}：把字串第 n 個字置中印在格子裡（中文大寫金額、郵遞區號）
+\newcommand{\digit}[4]{\putc[#4]{#3}{%
+  \ifunconf{#1}{\StrGobbleRight{#1}{1}[\digitstr]\unc{\StrChar{\digitstr}{#2}}}{\StrChar{#1}{#2}}}}
+
+% ---------------------------------------------------------------- 開關
+% \repname[字級]{x,y}{姓名}：\PrintRepOnSign = 1 才在簽章處印負責人姓名
+\providecommand{\PrintRepOnSign}{0}
+\newcommand{\repname}[3][12]{\ifdefstring{\PrintRepOnSign}{1}{\putl[#1]{#2}{#3}}{}}
+% \ifsigndate{內容}：\PrintSignDate = 1 才印簽署日期（0 = 留白手寫）
+\providecommand{\PrintSignDate}{1}
+\newcommand{\ifsigndate}[1]{\ifdefstring{\PrintSignDate}{1}{#1}{}}
